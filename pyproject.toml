@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "icpquery"
 version = "0.1.0"
-description = ""
+description = "A CLI tool for query keyword in China MIIT ICP Website to get ICP Record"
 authors = ["SocialSisterYi <1440239038@qq.com>"]
 readme = "README.md"
 
