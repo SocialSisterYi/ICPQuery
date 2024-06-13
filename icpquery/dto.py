@@ -63,6 +63,11 @@ class AsyncIcpQueryDto:
         await self.client.__aexit__()
 
     async def get_token(self, account: str = "test", secret: str = "test"):
+        """获取Session Token
+        Args:
+            account:
+            secret:
+        """
         ts = int(time.time() * 1000)
         resp = await self.client.post(
             "/auth",
@@ -81,6 +86,7 @@ class AsyncIcpQueryDto:
         self.refresh = json_content["refresh"]
 
     async def refresh_token(self):
+        """刷新Session Token"""
         resp = await self.client.get(
             "/auth/refresh",
             params={
@@ -96,7 +102,11 @@ class AsyncIcpQueryDto:
         self.token = json_content["bussiness"]
         self.refresh = json_content["refresh"]
 
-    async def fetch_captcha(self) -> CaptchaModule:
+    async def get_captcha(self) -> CaptchaModule:
+        """获取图形验证码
+        Returns:
+            CaptchaModule: 图形验证码数据
+        """
         resp = await self.client.post(
             "/image/getCheckImagePoint",
             headers={
@@ -114,8 +124,13 @@ class AsyncIcpQueryDto:
         self.captcha = CaptchaModule.model_validate(json_content["params"])
         return self.captcha
 
-    async def check_captcha(self, points: Points) -> str:
-        """提交验证码"""
+    async def check_captcha(self, points: Points) -> bool:
+        """提交图形验证码答案
+        Args:
+            points: 验证码点选坐标集
+        Returns:
+            bool: 是否校验通过
+        """
         resp = await self.client.post(
             "/image/checkImage",
             headers={
@@ -136,16 +151,24 @@ class AsyncIcpQueryDto:
         if json_content.get("success"):
             self.captcha_key = json_content["params"]["sign"]
             return True
-        else:
-            return False
+        return False
 
     async def query(
         self,
-        name: str,
+        keyword: str,
         search_type: SearchType,
         pn: int = 0,
         ps: int = 20,
     ) -> BeianQueryResp:
+        """通过关键字查询ICP记录
+        Args:
+            keyword: 关键字
+            search_type: 搜索类型
+            pn: 页码
+            ps: 每页数量
+        Returns:
+            BeianQueryResp: 查询结果
+        """
         resp = await self.client.post(
             "/icpAbbreviateInfo/queryByCondition",
             headers={
@@ -159,7 +182,7 @@ class AsyncIcpQueryDto:
                 {
                     "pageNum": pn,
                     "pageSize": ps,
-                    "unitName": name,
+                    "unitName": keyword,
                     "serviceType": search_type.value,
                 },
                 separators=(",", ":"),

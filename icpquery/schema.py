@@ -1,6 +1,7 @@
 import base64
 from datetime import datetime
 from enum import Enum
+from typing import Sequence
 
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
@@ -46,18 +47,18 @@ class CpatchaBackguard(Enum):
 
 
 class CaptchaModule(BaseModel):
-    """captcha数据"""
+    """Captcha数据"""
 
-    background_img: str = Field(alias="bigImage")
-    secret_key: str = Field(alias="secretKey")
-    pointer_img: str = Field(alias="smallImage")
+    background_img: str = Field(alias="bigImage", description="背景图片")
+    secret_key: str = Field(alias="secretKey", description="加密密钥")
+    pointer_img: str = Field(alias="smallImage", description="文字图片")
     uuid: str
-    word_count: int = Field(alias="wordCount")
+    word_count: int = Field(alias="wordCount", description="点选文字数")
 
-    def get_background_img(self):
+    def get_bg_img(self):
         return base64.b64decode(self.background_img)
 
-    def get_pointer_img(self):
+    def get_ptr_img(self):
         return base64.b64decode(self.pointer_img)
 
 
@@ -67,16 +68,23 @@ class Pos(BaseModel):
 
 
 class Points(RootModel):
+    """点选坐标集"""
+
     root: list[Pos] = Field([])
 
     def dump_in_encrypt(self, key: str) -> str:
         cryptor = AES.new(key.encode(), AES.MODE_ECB)
-        return base64.b64encode(
-            cryptor.encrypt(pad(self.model_dump_json().encode(), 16))
-        ).decode()
+        return base64.b64encode(cryptor.encrypt(pad(self.model_dump_json().encode(), 16))).decode()
 
     def append(self, x: int, y: int):
         self.root.append(Pos(x=x, y=y))
+
+    @classmethod
+    def from_list(cls, lst: list[Sequence]):
+        obj = cls()
+        for x, y in lst:
+            obj.append(x, y)
+        return obj
 
 
 class BeianSite(BaseModel):
@@ -93,9 +101,7 @@ class BeianSite(BaseModel):
     service_id: int = Field(alias="serviceId", description="ICP备案id")
     service_licence: str = Field(alias="serviceLicence", description="ICP备案号")
     unit_name: str = Field(alias="unitName", description="主体名称")
-    update_record_time: datetime = Field(
-        alias="updateRecordTime", description="审核通过日期"
-    )
+    update_record_time: datetime = Field(alias="updateRecordTime", description="审核通过日期")
 
 
 class BeianAPP(BaseModel):
@@ -122,9 +128,7 @@ class BeianAPP(BaseModel):
     service_id: int = Field(alias="serviceId", description="ICP备案id")
     service_licence: str = Field(alias="serviceLicence", description="ICP备案号")
     unit_name: str = Field(alias="unitName", description="主体名称")
-    update_record_time: datetime = Field(
-        alias="updateRecordTime", description="审核通过日期"
-    )
+    update_record_time: datetime = Field(alias="updateRecordTime", description="审核通过日期")
 
 
 class BeianQueryResp(BaseModel):
@@ -137,11 +141,9 @@ class BeianQueryResp(BaseModel):
     def __iter__(self):
         return iter(self.results)
 
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
         col = Columns()
-        for result in self:
+        for result in self.results:
             tb = Table(show_header=False)
             if self.search_type == SearchType.DOMAIN:
                 tb.add_row("[green]网站域名", result.domain)
@@ -197,9 +199,6 @@ class BeianQueryResp(BaseModel):
                 )
                 lines.append((None, None))
             lines.pop()
-            return "\n".join(
-                f"{k}{kv_delimiter}{v}" if k is not None else record_delimiter
-                for k, v in lines
-            )
+            return "\n".join(f"{k}{kv_delimiter}{v}" if k is not None else record_delimiter for k, v in lines)
         else:
             return "未查询到该备案"

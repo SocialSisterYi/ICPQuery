@@ -97,9 +97,7 @@ async def query_icp(
             "{task.description}",
             TextColumn("[green]{task.completed} / {task.total}"),
         )
-        progress_task = progress.add_task(
-            "验证码识别中", total=captcha_max_retry, completed=1
-        )
+        progress_task = progress.add_task("验证码识别中", total=captcha_max_retry, completed=1)
         table.add_row(progress)
 
         def on_captcha_try(count: int):
