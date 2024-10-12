@@ -13,14 +13,39 @@ It is also Python library that can be invoked by single async function.
 
 ## Installation
 
-### Installation from source (whl package)
+### Install via pypi
 
-1. Make sure your system already installed **poetry**
-
-2. build and install
+The release of `icpquery` is distributed on PyPi(Python Version >= 3.10).
 
 ```bash
+pip install icpquery
+```
+
+### Install from source (whl package)
+
+1. Make sure your system already installed **Python >= 3.10** and **poetry**
+
+2. Download package or clone this repository
+
+3. build and install
+
+```bash
+cd ICPQuery
 poetry install
 poetry build -f wheel
 pip install dist/icpquery-xxx.whl
+```
+
+## Usage
+
+To show results list with TUI use:
+
+```bash
+icpquery 'baidu.com'
+```
+
+To output json/plain to stdo use:
+
+```bash
+icpquery -f json 'baidu.com'
 ```
