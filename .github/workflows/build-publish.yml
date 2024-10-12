@@ -26,5 +26,5 @@ jobs:
         shell: bash
       - name: Publish PyPi package
         run: |
-          poetry publish -p ${{ secrets.PYPI_TOKEN }} --build
+          poetry publish -p ${{ secrets.PYPI_TOKEN }} -u __token__ --build
         shell: bash
