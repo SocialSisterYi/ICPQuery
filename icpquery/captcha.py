@@ -1,4 +1,3 @@
-from itertools import product
 from pathlib import Path
 
 import cv2
@@ -22,9 +21,6 @@ def images_sim(img_a: np.ndarray, img_b: np.ndarray) -> float:
     Returns:
         float: 相似度评分(越小越相似)
     """
-    if img_a.shape != img_b.shape:
-        raise ValueError
-
     img_a_gray = cv2.cvtColor(img_a, cv2.COLOR_BGR2GRAY)
     img_b_gray = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
     h, w = img_a_gray.shape
@@ -45,6 +41,11 @@ def detect_bg_type(neddle_img: np.ndarray, threshold: float = 2.0) -> CpatchaBac
     for tag in CpatchaBackguard._member_map_.values():
         hay_file = BACKGROUNDS_PATH / f"{tag.value}.png"
         hay_img = cv2.imread(str(hay_file), cv2.IMREAD_COLOR)
+
+        # 图片尺寸不一致, 直接判定为不相似, 无需比对
+        if hay_img.shape != neddle_img.shape:
+            continue
+
         mse = images_sim(hay_img, neddle_img)
         if mse <= threshold:
             return tag

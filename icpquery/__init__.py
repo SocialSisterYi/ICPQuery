@@ -5,7 +5,7 @@ from .exceptions import APIError, FuckCaptchaFail, ICPQueryError
 from .schema import BeianQueryResp, SearchType
 from .utils import resolve_captcha
 
-__init__ = '1.0.0'
+__init__ = '1.1.0'
 
 async def query(
     keyword: str,
