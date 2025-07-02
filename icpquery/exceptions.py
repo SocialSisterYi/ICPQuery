@@ -1,9 +1,13 @@
 class ICPQueryError(Exception):
-    """ICP查询调用失败"""
+    "ICP查询调用错误"
+
+
+class ICPHTTPError(ICPQueryError):
+    "ICP查询HTTP错误"
 
 
 class APIError(ICPQueryError):
-    """接口调用异常"""
+    "ICP查询接口调用异常"
 
     def __init__(self, code: int, msg: str) -> None:
         super().__init__()

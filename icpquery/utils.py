@@ -1,6 +1,8 @@
 import asyncio
 from typing import Callable
 
+import httpx
+
 from .captcha import fuck_captcha
 from .dto import AsyncIcpQueryDto
 from .exceptions import FuckCaptchaFail
@@ -24,9 +26,9 @@ async def resolve_captcha(
             callback(retry_cnt)
 
         captcha = await dto.get_captcha()
-        try:
-            points = await asyncio.to_thread(fuck_captcha, captcha)
-        except FuckCaptchaFail:
+
+        points = await asyncio.to_thread(fuck_captcha, captcha)
+        if points is None:
             await asyncio.sleep(fail_delay)
             continue
 
@@ -34,5 +36,5 @@ async def resolve_captcha(
             return
 
         await asyncio.sleep(fail_delay)
-
-    raise FuckCaptchaFail
+    else:
+        raise FuckCaptchaFail

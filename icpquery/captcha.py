@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 from onnxruntime import InferenceSession
 
-from .exceptions import FuckCaptchaFail
 from .schema import CaptchaModule, CpatchaBackguard, Points
 
 # 模型路径
@@ -30,7 +29,7 @@ def images_sim(img_a: np.ndarray, img_b: np.ndarray) -> float:
     return mse
 
 
-def detect_bg_type(neddle_img: np.ndarray, threshold: float = 2.0) -> CpatchaBackguard:
+def detect_bg_type(neddle_img: np.ndarray, threshold: float = 2.0) -> CpatchaBackguard | None:
     """识别底图背景类型
     Args:
         neddle_img: 欲识别的图片
@@ -49,7 +48,8 @@ def detect_bg_type(neddle_img: np.ndarray, threshold: float = 2.0) -> CpatchaBac
         mse = images_sim(hay_img, neddle_img)
         if mse <= threshold:
             return tag
-    raise FuckCaptchaFail
+    else:
+        return None
 
 
 def remove_bg(orig_img: np.ndarray, bg_type: CpatchaBackguard) -> np.ndarray:
@@ -146,12 +146,10 @@ def detect_answer_pos(
                         round(y + h / 2),  # Y
                     )
                 )
-    if len(result_lst) != 4:
-        raise FuckCaptchaFail
     return result_lst
 
 
-def fuck_captcha(captcha: CaptchaModule) -> Points:
+def fuck_captcha(captcha: CaptchaModule) -> Points | None:
     "识别验证码点选位置"
     orig_bg_img = cv2.imdecode(np.frombuffer(captcha.get_bg_img(), np.uint8), cv2.IMREAD_COLOR)
     orig_ptr_img = cv2.imdecode(np.frombuffer(captcha.get_ptr_img(), np.uint8), cv2.IMREAD_COLOR)
@@ -161,6 +159,9 @@ def fuck_captcha(captcha: CaptchaModule) -> Points:
 
     # 识别并去除底图背景
     bg_type = detect_bg_type(orig_bg_img)
+    if bg_type is None:
+        return None
+
     plain_bg_img = remove_bg(orig_bg_img, bg_type)
 
     # 识别底图对象
@@ -168,40 +169,43 @@ def fuck_captcha(captcha: CaptchaModule) -> Points:
 
     # 识别相似对象坐标
     answer_points = detect_answer_pos(plain_bg_img, pointer_img_lst, roi_boxes)
+    if len(answer_points) == 4:
+        # 序列化坐标
+        points = Points.from_list(answer_points)
 
-    # 序列化坐标
-    points = Points.from_list(answer_points)
+        # # DEBUG
+        # bg_h, bg_w, _ = orig_bg_img.shape
+        # ans_h, ans_w, _ = orig_ptr_img.shape
+        # show_img = np.zeros((bg_h + ans_h, bg_w, 3), dtype=np.uint8)
+        # show_img[0:ans_h, 0:ans_w, ...] = orig_ptr_img
+        # show_img[ans_h : bg_h + ans_h, 0:bg_w, ...] = orig_bg_img
+        # for roi_box in roi_boxes:
+        #     x, y, w, h = roi_box
+        #     show_img = cv2.rectangle(
+        #         show_img,
+        #         (x, ans_h + y),
+        #         (x + w, ans_h + y + h),
+        #         color=(0, 255, 0),
+        #     )
+        # positions = [165, 200, 231, 265]
+        # for i in range(4):
+        #     x = positions[i] + 15
+        #     try:
+        #         point_x, point_y = answer_points[i]
+        #     except IndexError:
+        #         break
 
-    # # DEBUG
-    # bg_h, bg_w, _ = orig_bg_img.shape
-    # ans_h, ans_w, _ = orig_ptr_img.shape
-    # show_img = np.zeros((bg_h + ans_h, bg_w, 3), dtype=np.uint8)
-    # show_img[0:ans_h, 0:ans_w, ...] = orig_ptr_img
-    # show_img[ans_h : bg_h + ans_h, 0:bg_w, ...] = orig_bg_img
-    # for roi_box in roi_boxes:
-    #     x, y, w, h = roi_box
-    #     show_img = cv2.rectangle(
-    #         show_img,
-    #         (x, ans_h + y),
-    #         (x + w, ans_h + y + h),
-    #         color=(0, 255, 0),
-    #     )
-    # positions = [165, 200, 231, 265]
-    # for i in range(4):
-    #     x = positions[i] + 15
-    #     try:
-    #         point_x, point_y = answer_points[i]
-    #     except IndexError:
-    #         break
+        #     show_img = cv2.line(
+        #         show_img,
+        #         (point_x, ans_h + point_y),
+        #         (x, 40),
+        #         color=(0, 0, 255),
+        #         thickness=2,
+        #     )
+        # cv2.imshow("bg", show_img)
+        # cv2.waitKey()
 
-    #     show_img = cv2.line(
-    #         show_img,
-    #         (point_x, ans_h + point_y),
-    #         (x, 40),
-    #         color=(0, 0, 255),
-    #         thickness=2,
-    #     )
-    # cv2.imshow("bg", show_img)
-    # cv2.waitKey()
+    else:
+        return None
 
     return points

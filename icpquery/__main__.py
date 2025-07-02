@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 import sys
-from enum import Enum
+from enum import StrEnum
 from functools import partial, wraps
 
 from rich.align import Align
@@ -12,7 +12,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from typer import Argument, Option, Typer
 
-from icpquery import ICPQueryError, SearchType, query
+from icpquery import SearchType, icp_query
+from icpquery.exceptions import ICPQueryError
 
 
 class AsyncTyper(Typer):
@@ -42,7 +43,7 @@ app = AsyncTyper(add_completion=False)
 console = Console()
 
 
-class SearchTypeChoice(str, Enum):
+class SearchTypeChoice(StrEnum):
     """搜索类型"""
 
     DOMAIN = "domain"
@@ -51,14 +52,14 @@ class SearchTypeChoice(str, Enum):
     FAST_PROG = "fast_prog"
 
 
-class FormatTypeChoice(str, Enum):
+class FormatTypeChoice(StrEnum):
     TTY = "tty"
     JSON = "json"
     TEXT = "text"
 
 
 @app.command(help="查询ICP备案记录")
-async def query_icp(
+async def query(
     keyword: str = Argument(
         help="域名/APP或备案号",
         show_default=False,
@@ -105,24 +106,14 @@ async def query_icp(
 
         with Live(table, console=console) as live:
             try:
-                results = await query(
+                results = await icp_query(
                     keyword,
                     SearchType[search_type.name],
                     captcha_cb=on_captcha_try,
                     captcha_max_retry=captcha_max_retry,
                 )
             except ICPQueryError:
-                live.update(
-                    Panel(
-                        Align(
-                            "[bold red]ICP查询调用失败",
-                            align="center",
-                            vertical="middle",
-                        ),
-                        border_style="red",
-                        height=5,
-                    )
-                )
+                live.update("[bold red]ICP查询失败")
             else:
                 if results:
                     panel = Panel(results, title_align="left")
@@ -148,25 +139,25 @@ async def query_icp(
                     )
     elif format == FormatTypeChoice.JSON:
         try:
-            results = await query(
+            results = await icp_query(
                 keyword,
                 SearchType[search_type.name],
                 captcha_max_retry=captcha_max_retry,
             )
         except ICPQueryError:
-            sys.stderr.write("ICP查询调用失败")
+            sys.stderr.write("ICP查询失败")
             sys.exit(-1)
         else:
             sys.stdout.write(results.to_json())
     elif format == FormatTypeChoice.TEXT:
         try:
-            results = await query(
+            results = await icp_query(
                 keyword,
                 SearchType[search_type.name],
                 captcha_max_retry=captcha_max_retry,
             )
         except ICPQueryError:
-            sys.stderr.write("ICP查询调用失败")
+            sys.stderr.write("ICP查询失败")
             sys.exit(-1)
         else:
             sys.stdout.write(results.to_text())

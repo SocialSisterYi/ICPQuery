@@ -1,34 +1,35 @@
-[tool.poetry]
+[project]
 name = "icpquery"
 version = "1.1.0"
 description = "A CLI tool for query keyword in China MIIT ICP Website to get ICP Record"
-license = "MIT"
-authors = ["SocialSisterYi <1440239038@qq.com>"]
+license = { text = "MIT" }
+authors = [{ name = "SocialSisterYi", email = "1440239038@qq.com" }]
+dependencies = [
+    "rich>=13.0",
+    "typer>=0.15.0",
+    "numpy>=2.3.0",
+    "pydantic>=2.11",
+    "pycryptodome>=3.23",
+    "opencv-python>=4.10",
+    "onnxruntime>=1.21",
+    "httpx>=0.28",
+]
+requires-python = ">=3.11"
 readme = "README.md"
-repository = "https://github.com/SocialSisterYi/ICPQuery"
 keywords = ["MIIT", "ICP"]
 
-[tool.poetry.dependencies]
-python = ">=3.9"
-rich = "^13.7.1"
-typer = "^0.15.1"
-numpy = "^1.26.4"
-pydantic = "^2.7.1"
-pycryptodome = "^3.20.0"
-opencv-python = "^4.9.0.80"
-onnxruntime = "^1.17.3"
-httpx = "^0.28.1"
+[project.urls]
+repository = "https://github.com/SocialSisterYi/ICPQuery"
 
-[tool.poetry.group.dev.dependencies]
-black = "^25.1.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
+[project.scripts]
 icpquery = "icpquery.__main__:app"
+
+[tool.pdm]
+distribution = true
 
 [tool.black]
 line-length = 110
 target-version = ['py310']
+
+[dependency-groups]
+dev = ["black<26.0.0,>=25.1.0"]

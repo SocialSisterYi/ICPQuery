@@ -1,13 +1,16 @@
 from typing import Callable
 
+import httpx
+
 from .dto import AsyncIcpQueryDto
-from .exceptions import APIError, FuckCaptchaFail, ICPQueryError
+from .exceptions import ICPHTTPError
 from .schema import BeianQueryResp, SearchType
 from .utils import resolve_captcha
 
-__init__ = '1.1.0'
+__init__ = "1.1.0"
 
-async def query(
+
+async def icp_query(
     keyword: str,
     search_type: SearchType = SearchType.DOMAIN,
     captcha_cb: Callable[[int], None] = None,
@@ -24,8 +27,15 @@ async def query(
     Returns:
         BeianQueryResp: 查询结果
     """
-    async with AsyncIcpQueryDto() as dto:
-        await dto.get_token()
-        await resolve_captcha(dto, captcha_cb, captcha_max_retry, captcha_fail_delay)
-        results = await dto.query(keyword, search_type)
-    return results
+    try:
+        async with AsyncIcpQueryDto() as dto:
+            await dto.get_token()
+            await resolve_captcha(dto, captcha_cb, captcha_max_retry, captcha_fail_delay)
+            results = await dto.query(keyword, search_type)
+    except httpx.HTTPError:
+        raise ICPHTTPError
+    else:
+        return results
+
+
+__all__ = ["icp_query", "BeianQueryResp", "SearchType"]
