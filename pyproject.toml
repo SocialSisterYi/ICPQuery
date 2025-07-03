@@ -1,6 +1,6 @@
 [project]
 name = "icpquery"
-version = "1.1.0"
+version = "1.2.0"
 description = "A CLI tool for query keyword in China MIIT ICP Website to get ICP Record"
 license = { text = "MIT" }
 authors = [{ name = "SocialSisterYi", email = "1440239038@qq.com" }]

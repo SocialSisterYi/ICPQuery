@@ -7,7 +7,7 @@ from .exceptions import ICPHTTPError
 from .schema import BeianQueryResp, SearchType
 from .utils import resolve_captcha
 
-__init__ = "1.1.0"
+__init__ = "1.2.0"
 
 
 async def icp_query(

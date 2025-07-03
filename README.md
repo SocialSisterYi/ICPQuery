@@ -15,7 +15,7 @@ It is also Python library that can be invoked by single async function.
 
 ### Install via pypi
 
-The release of `icpquery` is distributed on PyPi(Python Version >= 3.10).
+The release of `icpquery` is distributed on PyPi(Python Version >= 3.11).
 
 ```bash
 pip install icpquery
@@ -23,7 +23,7 @@ pip install icpquery
 
 ### Install from source (whl package)
 
-1. Make sure your system already installed **Python >= 3.10** and **poetry**
+1. Make sure your system already installed **Python >= 3.11** and **pdm**
 
 2. Download package or clone this repository
 
@@ -31,8 +31,8 @@ pip install icpquery
 
 ```bash
 cd ICPQuery
-poetry install
-poetry build -f wheel
+pdm install
+pdm build
 pip install dist/icpquery-xxx.whl
 ```
 
@@ -48,4 +48,18 @@ To output json/plain to stdo use:
 
 ```bash
 icpquery -f json 'baidu.com'
+```
+
+As a library:
+
+```python
+from icpquery import icp_query, SearchType
+import asyncio
+
+async def main():
+    results = await icp_query('baidu.com', search_type=SearchType.DOMAIN)
+    print(results.to_text())
+
+asyncio.run(main())
+
 ```
