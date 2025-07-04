@@ -1,6 +1,6 @@
 [project]
 name = "icpquery"
-version = "1.2.0"
+version = "1.2.1"
 description = "A CLI tool for query keyword in China MIIT ICP Website to get ICP Record"
 license = { text = "MIT" }
 authors = [{ name = "SocialSisterYi", email = "1440239038@qq.com" }]
@@ -27,9 +27,16 @@ icpquery = "icpquery.__main__:app"
 [tool.pdm]
 distribution = true
 
+[tool.pdm.build]
+includes = ["icpquery/"]
+
 [tool.black]
 line-length = 110
-target-version = ['py310']
+target-version = ['py311']
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 [dependency-groups]
 dev = ["black<26.0.0,>=25.1.0"]

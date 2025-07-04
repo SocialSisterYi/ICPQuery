@@ -3,6 +3,7 @@ import inspect
 import sys
 from enum import StrEnum
 from functools import partial, wraps
+from typing import Optional
 
 from rich.align import Align
 from rich.console import Console
@@ -10,9 +11,9 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
-from typer import Argument, Option, Typer
+from typer import Argument, Context, Option, Typer
 
-from icpquery import SearchType, icp_query
+from icpquery import SearchType, __version__, icp_query
 from icpquery.exceptions import ICPQueryError
 
 
@@ -40,7 +41,7 @@ class AsyncTyper(Typer):
 
 
 app = AsyncTyper(add_completion=False)
-console = Console()
+console = Console(highlight=False)
 
 
 class SearchTypeChoice(StrEnum):
@@ -60,7 +61,9 @@ class FormatTypeChoice(StrEnum):
 
 @app.command(help="查询ICP备案记录")
 async def query(
-    keyword: str = Argument(
+    ctx: Context,
+    keyword: Optional[str] = Argument(
+        None,
         help="域名/APP或备案号",
         show_default=False,
     ),
@@ -81,7 +84,19 @@ async def query(
         "--max-retry",
         help="验证码最大重试次数",
     ),
+    version: bool = Option(
+        False,
+        "-V",
+        "--version",
+        help="打印版本号",
+    ),
 ):
+    if version is True:
+        console.print(f"V{__version__}")
+        sys.exit(0)
+    if not keyword:
+        ctx.get_help()
+        sys.exit(0)
     if format == FormatTypeChoice.TTY:
         table = Table.grid()
         table.add_row(
