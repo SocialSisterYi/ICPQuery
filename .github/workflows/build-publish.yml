@@ -8,20 +8,13 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: write
+            id-token: write
         steps:
             - name: Checkout Repository
               uses: actions/checkout@v4
-            - name: Set up Python 3.11
-              uses: actions/setup-python@v4
+            - name: Setup PDM
+              uses: pdm-project/setup-pdm@v4
               with:
                 python-version: '3.11'
-                check-latest: true
-            - name: Install pdm
-              run: pip install pdm
-              shell: bash
-            - name: Install dependencies
-              run: pdm install
-              shell: bash
             - name: Publish PyPi package
               run: pdm publish -P ${{ secrets.PYPI_TOKEN }} -u __token__
-              shell: bash
