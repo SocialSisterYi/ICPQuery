@@ -1,11 +1,11 @@
 [project]
 name = "icpquery"
-version = "1.2.1"
+version = "1.3.0"
 description = "A CLI tool for query keyword in China MIIT ICP Website to get ICP Record"
 license = { text = "MIT" }
 authors = [{ name = "SocialSisterYi", email = "1440239038@qq.com" }]
 dependencies = [
-    "rich>=13.0",
+    "rich>=14.2.0",
     "typer>=0.15.0",
     "numpy>=2.3.0",
     "pydantic>=2.11",

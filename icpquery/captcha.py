@@ -29,7 +29,7 @@ def images_sim(img_a: np.ndarray, img_b: np.ndarray) -> float:
     return mse
 
 
-def detect_bg_type(neddle_img: np.ndarray, threshold: float = 2.0) -> CpatchaBackguard | None:
+def detect_bg_type(neddle_img: np.ndarray, threshold: float = 1.8) -> CpatchaBackguard | None:
     """识别底图背景类型
     Args:
         neddle_img: 欲识别的图片
@@ -114,6 +114,7 @@ def detect_answer_pos(
     Returns:
         list[tuple]: 符合顺序要求的坐标集列表
     """
+    hs_h, hs_w, _ = haystack_img.shape
     session = InferenceSession(MODULES_PATH / "siamese.onnx")
     result_lst = []
 
@@ -125,7 +126,15 @@ def detect_answer_pos(
         needle_img_part = np.expand_dims(needle_img_part, axis=0).astype(np.float32)
         for roi_box in roi_boxes:
             x, y, w, h = roi_box
-            haystack_img_part = haystack_img[y : y + h + 2, x : x + w + 2]
+            if x - 2 >= 0:
+                x -= 2
+            if y - 2 >= 0:
+                x -= 2
+            if h + 2 <= hs_h:
+                h += 2
+            if w + 2 <= hs_w:
+                w += 2
+            haystack_img_part = haystack_img[y : y + h, x : x + w]
             haystack_img_part = cv2.cvtColor(haystack_img_part, cv2.COLOR_BGR2RGB)
             haystack_img_part = cv2.resize(haystack_img_part, (105, 105))
             haystack_img_part = haystack_img_part / 255.0
@@ -149,10 +158,59 @@ def detect_answer_pos(
     return result_lst
 
 
+def debug_background_remover(
+    bg_img: cv2.Mat,
+    plain_bg_img: cv2.Mat,
+):
+    bg_h, bg_w, _ = bg_img.shape
+    show_img = np.zeros((bg_h * 2, bg_w, 3), dtype=np.uint8)
+    show_img[0:bg_h, 0:bg_w, ...] = bg_img
+    show_img[bg_h : bg_h * 2, 0:bg_w, ...] = plain_bg_img
+    cv2.imshow("background_remover", show_img)
+
+
+def debug_answer_points(
+    bg_img: cv2.Mat,
+    ptr_img: cv2.Mat,
+    roi_boxes: list[cv2.typing.Rect],
+    answer_points: list[tuple],
+):
+    bg_h, bg_w, _ = bg_img.shape
+    ans_h, ans_w, _ = ptr_img.shape
+    show_img = np.zeros((bg_h + ans_h, bg_w, 3), dtype=np.uint8)
+    show_img[0:ans_h, 0:ans_w, ...] = ptr_img
+    show_img[ans_h : bg_h + ans_h, 0:bg_w, ...] = bg_img
+    for roi_box in roi_boxes:
+        x, y, w, h = roi_box
+        show_img = cv2.rectangle(
+            show_img,
+            (x, ans_h + y),
+            (x + w, ans_h + y + h),
+            color=(0, 255, 0),
+            thickness=2,
+        )
+    positions = [165, 200, 231, 265]
+    for i in range(4):
+        x = positions[i] + 15
+        try:
+            point_x, point_y = answer_points[i]
+        except IndexError:
+            break
+
+        show_img = cv2.line(
+            show_img,
+            (point_x, ans_h + point_y),
+            (x, 40),
+            color=(0, 0, 255),
+            thickness=2,
+        )
+    cv2.imshow("answer_points", show_img)
+
+
 def fuck_captcha(captcha: CaptchaModule) -> Points | None:
     "识别验证码点选位置"
-    orig_bg_img = cv2.imdecode(np.frombuffer(captcha.get_bg_img(), np.uint8), cv2.IMREAD_COLOR)
-    orig_ptr_img = cv2.imdecode(np.frombuffer(captcha.get_ptr_img(), np.uint8), cv2.IMREAD_COLOR)
+    orig_bg_img = cv2.imdecode(np.frombuffer(captcha.bg_img_data, np.uint8), cv2.IMREAD_COLOR)
+    orig_ptr_img = cv2.imdecode(np.frombuffer(captcha.ptr_img_data, np.uint8), cv2.IMREAD_COLOR)
 
     # 切分点选文字图片
     pointer_img_lst = spilt_pointer_img(orig_ptr_img)
@@ -169,43 +227,16 @@ def fuck_captcha(captcha: CaptchaModule) -> Points | None:
 
     # 识别相似对象坐标
     answer_points = detect_answer_pos(plain_bg_img, pointer_img_lst, roi_boxes)
-    if len(answer_points) == 4:
-        # 序列化坐标
-        points = Points.from_list(answer_points)
 
-        # # DEBUG
-        # bg_h, bg_w, _ = orig_bg_img.shape
-        # ans_h, ans_w, _ = orig_ptr_img.shape
-        # show_img = np.zeros((bg_h + ans_h, bg_w, 3), dtype=np.uint8)
-        # show_img[0:ans_h, 0:ans_w, ...] = orig_ptr_img
-        # show_img[ans_h : bg_h + ans_h, 0:bg_w, ...] = orig_bg_img
-        # for roi_box in roi_boxes:
-        #     x, y, w, h = roi_box
-        #     show_img = cv2.rectangle(
-        #         show_img,
-        #         (x, ans_h + y),
-        #         (x + w, ans_h + y + h),
-        #         color=(0, 255, 0),
-        #     )
-        # positions = [165, 200, 231, 265]
-        # for i in range(4):
-        #     x = positions[i] + 15
-        #     try:
-        #         point_x, point_y = answer_points[i]
-        #     except IndexError:
-        #         break
+    # DEBUG
+    # debug_background_remover(orig_bg_img, plain_bg_img)
+    # debug_answer_points(orig_bg_img, orig_ptr_img, roi_boxes, answer_points)
+    # cv2.waitKey()
 
-        #     show_img = cv2.line(
-        #         show_img,
-        #         (point_x, ans_h + point_y),
-        #         (x, 40),
-        #         color=(0, 0, 255),
-        #         thickness=2,
-        #     )
-        # cv2.imshow("bg", show_img)
-        # cv2.waitKey()
-
-    else:
+    if len(answer_points) != 4:
         return None
+
+    # 序列化坐标
+    points = Points.from_list(answer_points)
 
     return points

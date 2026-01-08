@@ -1,8 +1,6 @@
 import asyncio
 from typing import Callable
 
-import httpx
-
 from .captcha import fuck_captcha
 from .dto import AsyncIcpQueryDto
 from .exceptions import FuckCaptchaFail
@@ -12,7 +10,7 @@ async def resolve_captcha(
     dto: AsyncIcpQueryDto,
     callback: Callable[[int], None] = None,
     max_retry: int = 10,
-    fail_delay: float = 1.0,
+    fail_delay: float = 5.0,
 ):
     """自动处理验证码
     Args:

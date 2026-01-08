@@ -28,12 +28,19 @@ class CpatchaBackguard(Enum):
     海滩 = "beach"
     自行车 = "bike"
     麦田 = "corn_field"
-    蝴蝶与花 = "butterfly_flower"
+    蝴蝶与花_1 = "butterfly_flower1"
+    蝴蝶与花_2 = "butterfly_flower2"
+    蝴蝶与花_3 = "butterfly_flower3"
+    蝴蝶与花_4 = "butterfly_flower4"
+    蝴蝶与花_5 = "butterfly_flower5"
+    蝴蝶与花_6 = "butterfly_flower6"
     蝴蝶 = "butterfly"
     蛋糕 = "cake"
     相机 = "camera"
     汽车 = "car"
-    猫 = "cats"
+    猫_1 = "cat1"
+    猫_2 = "cat2"
+    猫_3 = "cat3"
     海岸公园 = "coast_park"
     娃娃 = "doll"
     落叶 = "falls"
@@ -51,7 +58,8 @@ class CpatchaBackguard(Enum):
     雨_2 = "rain2"
     月季 = "rose"
     雪山 = "snow_mountain"
-    松鼠 = "squirrel"
+    松鼠_1 = "squirrel1"
+    松鼠_2 = "squirrel2"
     石头 = "stone"
     别墅 = "villa"
     墙 = "wall"
@@ -76,6 +84,24 @@ class CpatchaBackguard(Enum):
     魔法 = "magic"
     山谷 = "valley"
     冰雪 = "snow"
+    天鹅 = "swan"
+    仙人球 = "cactus"
+    鸭子_1 = "duck1"
+    鸭子_2 = "duck2"
+    大丽花_1 = "dahlia1"
+    大丽花_2 = "dahlia2"
+    菊花_1 = "chrysanthemum1"
+    菊花_2 = "chrysanthemum2"
+    树叶_1 = "leaves1"
+    树叶_2 = "leaves2"
+    树叶_3 = "leaves3"
+    树叶_4 = "leaves4"
+    狗尾草 = "foxtail_grass"
+    蒲苇 = "pampas_grass"
+    红百合_1 = "red_lily1"
+    红百合_2 = "red_lily2"
+    蜜蜂 = "bee"
+    星夜 = "starry_night"
 
 
 class CaptchaModule(BaseModel):
@@ -87,10 +113,12 @@ class CaptchaModule(BaseModel):
     uuid: str
     word_count: int = Field(alias="wordCount", description="点选文字数")
 
-    def get_bg_img(self):
+    @property
+    def bg_img_data(self) -> bytes:
         return base64.b64decode(self.background_img)
 
-    def get_ptr_img(self):
+    @property
+    def ptr_img_data(self) -> bytes:
         return base64.b64decode(self.pointer_img)
 
 

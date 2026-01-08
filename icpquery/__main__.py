@@ -159,7 +159,7 @@ async def query(
                 SearchType[search_type.name],
                 captcha_max_retry=captcha_max_retry,
             )
-        except ICPQueryError:
+        except ICPQueryError as e:
             sys.stderr.write("ICP查询失败")
             sys.exit(-1)
         else:
@@ -171,7 +171,7 @@ async def query(
                 SearchType[search_type.name],
                 captcha_max_retry=captcha_max_retry,
             )
-        except ICPQueryError:
+        except ICPQueryError as e:
             sys.stderr.write("ICP查询失败")
             sys.exit(-1)
         else:

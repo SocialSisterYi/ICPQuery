@@ -7,7 +7,7 @@ from .exceptions import ICPHTTPError
 from .schema import BeianQueryResp, SearchType
 from .utils import resolve_captcha
 
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 
 
 async def icp_query(
@@ -15,7 +15,7 @@ async def icp_query(
     search_type: SearchType = SearchType.DOMAIN,
     captcha_cb: Callable[[int], None] = None,
     captcha_max_retry: int = 10,
-    captcha_fail_delay: float = 1.0,
+    captcha_fail_delay: float = 2.0,
 ) -> BeianQueryResp:
     """调用ICP查询处理
     Args:
@@ -34,8 +34,7 @@ async def icp_query(
             results = await dto.query(keyword, search_type)
     except httpx.HTTPError:
         raise ICPHTTPError
-    else:
-        return results
+    return results
 
 
 __all__ = ["icp_query", "BeianQueryResp", "SearchType"]
