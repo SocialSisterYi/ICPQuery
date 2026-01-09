@@ -1,0 +1,21 @@
+name: Periodicity auto test to check this project available
+on:
+    schedule:
+        - cron: '0 0 * * *'
+    workflow_dispatch:
+jobs:
+    available-test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+            - name: Setup PDM
+              uses: pdm-project/setup-pdm@v4
+              with:
+                python-version: '3.11'
+            - name: Install Dependence
+              run: pdm install
+            - name: Auto Test
+              run: |
+                source .venv/bin/active
+                icpquery -f text 'baidu.com'
