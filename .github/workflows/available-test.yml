@@ -17,5 +17,4 @@ jobs:
               run: pdm install
             - name: Auto Test
               run: |
-                source .venv/bin/active
-                icpquery -f text 'baidu.com'
+                pdm run icpquery -f text 'baidu.com'
