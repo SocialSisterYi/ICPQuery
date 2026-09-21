@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from onnxruntime import InferenceSession
 
-from .schema import CaptchaModule, CpatchaBackguard, Points
+from ..schema.captcha import CaptchaClickModule, CpatchaBackguard, Points
 
 # 模型路径
 MODULES_PATH = Path(__file__).parent / "models"
@@ -41,13 +41,16 @@ def detect_bg_type(neddle_img: np.ndarray, threshold: float = 1.8) -> CpatchaBac
         hay_file = BACKGROUNDS_PATH / f"{tag.value}.png"
         hay_img = cv2.imread(str(hay_file), cv2.IMREAD_COLOR)
 
+        if hay_img is None:
+            return
+
         # 图片尺寸不一致, 直接判定为不相似, 无需比对
         if hay_img.shape != neddle_img.shape:
             continue
 
         mse = images_sim(hay_img, neddle_img)
         if mse <= threshold:
-            return tag
+            return CpatchaBackguard(tag)
     else:
         return None
 
@@ -104,7 +107,7 @@ def detect_answer_pos(
     needle_img_lst: list[np.ndarray],
     roi_boxes: list[cv2.typing.Rect],
     threshold: float = 0.6,
-) -> list[tuple]:
+) -> list[tuple[int, int]]:
     """根据相似度识别文字点选顺序
     Args:
         haystack_img: 底图
@@ -112,7 +115,7 @@ def detect_answer_pos(
         boxes: 底图ROI区域列表
         threshold: 识别阈值
     Returns:
-        list[tuple]: 符合顺序要求的坐标集列表
+        list[tuple[int, int]]: 符合顺序要求的坐标集列表
     """
     hs_h, hs_w, _ = haystack_img.shape
     session = InferenceSession(MODULES_PATH / "siamese.onnx")
@@ -207,10 +210,18 @@ def debug_answer_points(
     cv2.imshow("answer_points", show_img)
 
 
-def fuck_captcha(captcha: CaptchaModule) -> Points | None:
-    "识别验证码点选位置"
+def fuck_click_captcha(captcha: CaptchaClickModule) -> Points | None:
+    """识别验证码点选位置
+    Args:
+        captcha: 点选验证码数据
+    Returns:
+         Points | None: 点选坐标点集
+    """
     orig_bg_img = cv2.imdecode(np.frombuffer(captcha.bg_img_data, np.uint8), cv2.IMREAD_COLOR)
     orig_ptr_img = cv2.imdecode(np.frombuffer(captcha.ptr_img_data, np.uint8), cv2.IMREAD_COLOR)
+
+    if orig_bg_img is None or orig_ptr_img is None:
+        return None
 
     # 切分点选文字图片
     pointer_img_lst = spilt_pointer_img(orig_ptr_img)

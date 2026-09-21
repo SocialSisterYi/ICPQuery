@@ -1,14 +1,15 @@
 import asyncio
 from typing import Callable
 
-from .captcha import fuck_captcha
+from .captcha import fuck_click_captcha, fuck_slide_captcha
 from .dto import AsyncIcpQueryDto
 from .exceptions import FuckCaptchaFail
+from .schema.captcha import CaptchaType
 
 
 async def resolve_captcha(
     dto: AsyncIcpQueryDto,
-    callback: Callable[[int], None] = None,
+    callback: Callable[[int], None] | None = None,
     max_retry: int = 10,
     fail_delay: float = 5.0,
 ):
@@ -24,14 +25,18 @@ async def resolve_captcha(
             callback(retry_cnt)
 
         captcha = await dto.get_captcha()
-
-        points = await asyncio.to_thread(fuck_captcha, captcha)
-        if points is None:
-            await asyncio.sleep(fail_delay)
-            continue
-
-        if await dto.check_captcha(points):
-            return
+        match captcha.type:
+            case CaptchaType.Click:
+                points = await asyncio.to_thread(fuck_click_captcha, captcha.click)
+                if points is None:
+                    await asyncio.sleep(fail_delay)
+                    continue
+                if await dto.check_click_captcha(captcha.click, points):
+                    return
+            case CaptchaType.Slide:
+                slide_pos = await asyncio.to_thread(fuck_slide_captcha, captcha.slide)
+                if await dto.check_slide_captcha(captcha.slide, slide_pos):
+                    return
 
         await asyncio.sleep(fail_delay)
     else:

@@ -5,28 +5,22 @@ from hashlib import md5
 from types import TracebackType
 from typing import Optional
 
-import httpx
+from httpx import AsyncClient
 
 from .exceptions import APIError
-from .schema import (
-    BeianAPP,
-    BeianQueryResp,
-    BeianSite,
-    CaptchaModule,
-    Points,
-    SearchType,
-)
+from .schema import BeianAPP, BeianQueryResp, BeianSite, SearchType
+from .schema.captcha import CaptchaClickModule, CaptchaModule, CaptchaSlideModule, CaptchaType, Points
 
 API_BASE = "https://hlwicpfwc.miit.gov.cn/icpproject_query/api"
 
 
 class AsyncIcpQueryDto:
-    client: httpx.AsyncClient
+    client: AsyncClient
     client_id: str
     token: str
     refresh: str
-    captcha: CaptchaModule
     captcha_key: str
+    captcha_uuid:str
 
     def __init__(
         self,
@@ -34,7 +28,7 @@ class AsyncIcpQueryDto:
         token: Optional[str] = None,
         refresh: Optional[str] = None,
     ) -> None:
-        self.client = httpx.AsyncClient(
+        self.client = AsyncClient(
             headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0",
                 "Referer": "https://beian.miit.gov.cn/",
@@ -124,12 +118,30 @@ class AsyncIcpQueryDto:
         if (code := json_content["code"]) != 200:
             raise APIError(code, json_content["msg"])
 
-        self.captcha = CaptchaModule.model_validate(json_content["params"])
-        return self.captcha
+        captcha_params = json_content["params"]
+        # 动态判断验证码类型
+        if "height" in captcha_params:
+            captcha = CaptchaModule(
+                type=CaptchaType.Slide,
+                slide=CaptchaSlideModule.model_validate(captcha_params),
+                click=None,
+            )
+            self.captcha_uuid = captcha.slide.uuid
+        elif "wordCount" in captcha_params:
+            captcha = CaptchaModule(
+                type=CaptchaType.Click,
+                click=CaptchaClickModule.model_validate(captcha_params),
+                slide=None,
+            )
+            self.captcha_uuid = captcha.click.uuid
+        else:
+            raise
+        return captcha
 
-    async def check_captcha(self, points: Points) -> bool:
-        """提交图形验证码答案
+    async def check_click_captcha(self, captcha: CaptchaClickModule, points: Points) -> bool:
+        """提交点选验证码答案
         Args:
+            captcha: 验证码参数
             points: 验证码点选坐标集
         Returns:
             bool: 是否校验通过
@@ -141,9 +153,9 @@ class AsyncIcpQueryDto:
             },
             json={
                 "clientUid": self.client_id,
-                "pointJson": points.dump_in_encrypt(self.captcha.secret_key),
-                "secretKey": self.captcha.secret_key,
-                "token": self.captcha.uuid,
+                "pointJson": points.dump_in_encrypt(captcha.secret_key),
+                "secretKey": captcha.secret_key,
+                "token": captcha.uuid,
             },
         )
         resp.raise_for_status()
@@ -153,6 +165,34 @@ class AsyncIcpQueryDto:
 
         if json_content.get("success"):
             self.captcha_key = json_content["params"]["sign"]
+            return True
+        return False
+
+    async def check_slide_captcha(self, captcha: CaptchaSlideModule, pos: int) -> bool:
+        """提交滑动验证码答案
+        Args:
+            captcha: 验证码参数
+            pos: 验证码滑动位置
+        Returns:
+            bool: 是否校验通过
+        """
+        resp = await self.client.post(
+            "/image/checkImage",
+            headers={
+                "Token": self.token,
+            },
+            json={
+                "key": captcha.uuid,
+                "value": pos,
+            },
+        )
+        resp.raise_for_status()
+        json_content = resp.json()
+        if (code := json_content["code"]) != 200:
+            raise APIError(code, json_content["msg"])
+
+        if json_content.get("success"):
+            self.captcha_key = json_content["params"]
             return True
         return False
 
@@ -177,7 +217,7 @@ class AsyncIcpQueryDto:
             headers={
                 "token": self.token,
                 "sign": self.captcha_key,
-                "uuid": self.captcha.uuid,
+                "uuid": self.captcha_uuid,
                 "Content-Type": "application/json",
             },
             # 防止403
